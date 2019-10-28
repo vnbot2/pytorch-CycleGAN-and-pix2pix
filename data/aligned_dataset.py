@@ -1,8 +1,9 @@
 import os.path
-from data.base_dataset import BaseDataset, get_params, get_transform
+from data.base_dataset import *
 from data.image_folder import make_dataset
 from PIL import Image
-
+from pyson.common import *
+from pyson.vision import norm_range
 
 class AlignedDataset(BaseDataset):
     """A dataset class for paired image dataset.
@@ -23,6 +24,10 @@ class AlignedDataset(BaseDataset):
         assert(self.opt.load_size >= self.opt.crop_size)   # crop_size should be smaller than the size of loaded image
         self.input_nc = self.opt.output_nc if self.opt.direction == 'BtoA' else self.opt.input_nc
         self.output_nc = self.opt.input_nc if self.opt.direction == 'BtoA' else self.opt.output_nc
+        self.transform = get_transform
+
+
+
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -47,8 +52,8 @@ class AlignedDataset(BaseDataset):
 
         # apply the same transform to both A and B
         transform_params = get_params(self.opt, A.size)
-        A_transform = get_transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
-        B_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
+        A_transform = self.transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
+        B_transform = self.transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
 
         A = A_transform(A)
         B = B_transform(B)
@@ -58,3 +63,6 @@ class AlignedDataset(BaseDataset):
     def __len__(self):
         """Return the total number of images in the dataset."""
         return len(self.AB_paths)
+
+
+

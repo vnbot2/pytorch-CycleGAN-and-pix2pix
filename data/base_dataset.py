@@ -6,9 +6,17 @@ import random
 import numpy as np
 import torch.utils.data as data
 from PIL import Image
+import cv2
 import torchvision.transforms as transforms
 from abc import ABC, abstractmethod
-
+# from albumentations import (
+#     HorizontalFlip, IAAPerspective, ShiftScaleRotate, CLAHE, RandomRotate90,
+#     Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue,
+#     IAAAdditiveGaussianNoise, GaussNoise, MotionBlur, MedianBlur, RandomBrightnessContrast, IAAPiecewiseAffine,
+#     IAASharpen, IAAEmboss, Flip, OneOf, Compose
+# )
+import albumentations as albu
+from albumentations.pytorch import ToTensor
 
 class BaseDataset(data.Dataset, ABC):
     """This class is an abstract base class (ABC) for datasets.
@@ -111,6 +119,43 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
             transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     return transforms.Compose(transform_list)
 
+
+# def get_transform_drug(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
+#     transform_list = []
+#     # if grayscale:
+#     #     transform_list.append(transforms.Grayscale(1))
+#     # if 'resize' in opt.preprocess:
+#     osize = [opt.load_size, opt.load_size]
+#     import ipdb; ipdb.set_trace()
+#     transform_list.append(transforms.RandomRotation(360))
+#     transform_list.append(transforms.Resize(osize, method))
+#     # elif 'scale_width' in opt.preprocess:
+#     #     transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, method)))
+
+#     # if 'crop' in opt.preprocess:
+#     #     if params is None:
+#     #         transform_list.append(transforms.RandomCrop(opt.crop_size))
+#     #     else:
+#     #         transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
+
+#     if opt.preprocess == 'none':
+#         transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=4, method=method)))
+
+
+#     if convert:
+#         transform_list += [transforms.ToTensor()]
+#         transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+#     return transforms.Compose(transform_list)
+
+
+def get_transform_drug(opt):
+    height, width = [opt.load_size, opt.load_size]
+    ops  = [albu.Resize(256, 256)]
+    if not opt.no_flip: # training mode
+        ops += [albu.Rotate([-170, 170],p=1,border_mode=cv2.BORDER_CONSTANT, value=0),]
+    ops += [albu.Normalize((.5, .5, .5), std=[.5, .5, .5])]
+    target = {'mask' : 'image'}
+    return albu.Compose(ops, additional_targets=target)
 
 def __make_power_2(img, base, method=Image.BICUBIC):
     ow, oh = img.size
